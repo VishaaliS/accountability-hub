@@ -391,15 +391,27 @@ export default function Dashboard({ session, onLogout }) {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <div className="header-left">
-          <h1 className="header-title">⚒️ Boss Break</h1>
-          <p className="header-subtitle">Defeat the Crystal Titan</p>
-        </div>
-        <div className="header-right">
-          <span className="username">@{user?.username}</span>
-          <button onClick={onLogout} className="logout-btn">Logout</button>
-        </div>
-      </header>
+  <div className="header-left">
+    <h1 className="header-title">⚒️ Boss Break</h1>
+    <p className="header-subtitle">Defeat the Crystal Titan</p>
+  </div>
+  <div className="header-right">
+    {partnership && (
+      <button 
+        className="new-battle-btn" 
+        onClick={() => {
+          const confirmed = window.confirm('Start a new battle? This will clear all current tasks.')
+          if (confirmed) handleStartNewBattle()
+        }}
+        title="Start fresh battle"
+      >
+        ⚔️ New Battle
+      </button>
+    )}
+    <span className="username">@{user?.username}</span>
+    <button onClick={onLogout} className="logout-btn">Logout</button>
+  </div>
+</header>
 
       <main className="dashboard-content">
         {showPendingRequest && pendingPartner ? (
@@ -489,11 +501,20 @@ export default function Dashboard({ session, onLogout }) {
 
               <section className="rocks-section partner-section">
                 <div className="section-header">
-                  <h2 className="rocks-title">@{partnerUser?.username} Tasks</h2>
-                  <button className="disconnect-btn" onClick={disconnectPartnership} title="Disconnect">
-                    🔌
-                  </button>
-                </div>
+  <h2 className="rocks-title">@{partnerUser?.username} Tasks</h2>
+  <div className="partner-controls">
+    <button 
+      className="remove-partner-btn" 
+      onClick={() => {
+        const confirmed = window.confirm(`Remove @${partnerUser?.username} as your partner? This will end your partnership.`)
+        if (confirmed) disconnectPartnership()
+      }}
+      title="Remove partner"
+    >
+      👤✖️ Remove Partner
+    </button>
+  </div>
+</div>
                 <div className="rocks-grid">
                   {partnerTasks.length === 0 ? (
                     <p className="empty-message">Partner has no tasks yet</p>
