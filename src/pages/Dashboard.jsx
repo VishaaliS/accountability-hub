@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../config/supabaseClient'
+import CrystalTitan from '../components/BossSection/CrystalTitan'
+import BossHealthBar from '../components/BossSection/BossHealthBar'
+import TaskRock from '../components/TaskRock/TaskRock'
+import XPParticle from '../components/ParticleEffect/XPParticle'
 import './Dashboard.css'
 
-const ORE_TYPES = [
-  { type: 'Diamond', points: 50, icon: '💎' },
-  { type: 'Gold', points: 20, icon: '⭐' },
-  { type: 'Bronze', points: 10, icon: '🥉' },
-  { type: 'Stone', points: 5, icon: '🪨' },
-]
+const ROCK_CONFIG = {
+  Diamond: { name: 'Diamond', points: 50 },
+  Gold: { name: 'Gold', points: 20 },
+  Bronze: { name: 'Bronze', points: 10 },
+  Stone: { name: 'Stone', points: 5 },
+}
 
 export default function Dashboard({ session, onLogout }) {
   const [user, setUser] = useState(null)
@@ -17,24 +21,28 @@ export default function Dashboard({ session, onLogout }) {
   const [partnerTasks, setPartnerTasks] = useState([])
   const [loading, setLoading] = useState(true)
   
-  // Modals
+  const [bossHealth, setBossHealth] = useState({ current: 0, max: 0 })
+  const [isDefeated, setIsDefeated] = useState(false)
+  const [showVictory, setShowVictory] = useState(false)
+  
   const [showPairingModal, setShowPairingModal] = useState(false)
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [showPendingRequest, setShowPendingRequest] = useState(false)
+  
+  const [partnerUsername, setPartnerUsername] = useState('')
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [selectedOre, setSelectedOre] = useState('Stone')
+  const [error, setError] = useState('')
+  const [pairingLoading, setPairingLoading] = useState(false)
+  
   const [pendingPartner, setPendingPartner] = useState(null)
   const [pendingPartnershipId, setPendingPartnershipId] = useState(null)
   
-  // Forms
-  const [partnerUsername, setPartnerUsername] = useState('')
-  const [newTaskTitle, setNewTaskTitle] = useState('')
-  const [selectedOre, setSelectedOre] = useState(ORE_TYPES[3])
-  const [error, setError] = useState('')
-  const [pairingLoading, setPairingLoading] = useState(false)
+  const [particles, setParticles] = useState([])
 
   useEffect(() => {
     loadData()
 
-    // Real-time subscription for tasks
     const channel = supabase
       .channel('tasks-updates')
       .on('postgres_changes', 
@@ -48,7 +56,6 @@ export default function Dashboard({ session, onLogout }) {
 
   async function loadData() {
     try {
-      // 1. Get current user
       const { data: userData } = await supabase
         .from('users')
         .select('*')
@@ -56,29 +63,23 @@ export default function Dashboard({ session, onLogout }) {
         .maybeSingle()
 
       if (!userData) {
-        // User doesn't exist (shouldn't happen with new code)
         setLoading(false)
         return
       }
 
       setUser(userData)
 
-      // 2. Check for ACTIVE partnership
-      const { data: activePartnership } = await supabase
+      const { data: pData } = await supabase
         .from('partnerships')
         .select('*')
         .or(`user_1_id.eq.${session.user.id},user_2_id.eq.${session.user.id}`)
         .eq('status', 'active')
         .maybeSingle()
 
-      if (activePartnership) {
-        setPartnership(activePartnership)
+      if (pData) {
+        setPartnership(pData)
         
-        // Get partner info
-        const partnerId = activePartnership.user_1_id === session.user.id 
-          ? activePartnership.user_2_id 
-          : activePartnership.user_1_id
-
+        const partnerId = pData.user_1_id === session.user.id ? pData.user_2_id : pData.user_1_id
         const { data: pUser } = await supabase
           .from('users')
           .select('*')
@@ -86,9 +87,8 @@ export default function Dashboard({ session, onLogout }) {
           .maybeSingle()
 
         setPartnerUser(pUser)
-        fetchTasks(activePartnership.id)
+        fetchTasks(pData.id)
       } else {
-        // 3. Check for PENDING requests (incoming only)
         const { data: pendingPartnership } = await supabase
           .from('partnerships')
           .select('*')
@@ -97,7 +97,6 @@ export default function Dashboard({ session, onLogout }) {
           .maybeSingle()
 
         if (pendingPartnership) {
-          // Show pending request UI
           const { data: sender } = await supabase
             .from('users')
             .select('*')
@@ -126,10 +125,23 @@ export default function Dashboard({ session, onLogout }) {
     if (data) {
       setMyTasks(data.filter(t => t.user_id === session.user.id))
       setPartnerTasks(data.filter(t => t.user_id !== session.user.id))
+      
+      const totalTasks = data.length
+      const completedTasks = data.filter(t => t.completed).length
+      setBossHealth({
+        current: totalTasks - completedTasks,
+        max: totalTasks,
+      })
+
+      if (totalTasks > 0 && completedTasks === totalTasks) {
+        setIsDefeated(true)
+      } else {
+        setIsDefeated(false)
+        setShowVictory(false)
+      }
     }
   }
 
-  // Accept partnership request
   async function acceptPartnership() {
     const { error } = await supabase
       .from('partnerships')
@@ -142,7 +154,6 @@ export default function Dashboard({ session, onLogout }) {
     }
   }
 
-  // Reject partnership request
   async function rejectPartnership() {
     const { error } = await supabase
       .from('partnerships')
@@ -156,7 +167,6 @@ export default function Dashboard({ session, onLogout }) {
     }
   }
 
-  // Send partnership request
   async function handlePairWithUsername() {
     setError('')
     setPairingLoading(true)
@@ -168,7 +178,6 @@ export default function Dashboard({ session, onLogout }) {
     }
 
     try {
-      // Find partner
       const { data: partner } = await supabase
         .from('users')
         .select('*')
@@ -187,7 +196,6 @@ export default function Dashboard({ session, onLogout }) {
         return
       }
 
-      // Check if user already has active partnership
       const { data: userActive } = await supabase
         .from('partnerships')
         .select('*')
@@ -196,12 +204,11 @@ export default function Dashboard({ session, onLogout }) {
         .maybeSingle()
 
       if (userActive) {
-        setError('You already have an active partnership. End it to connect with someone else.')
+        setError('You already have an active partnership')
         setPairingLoading(false)
         return
       }
 
-      // Check if partner already has active partnership
       const { data: partnerActive } = await supabase
         .from('partnerships')
         .select('*')
@@ -215,7 +222,6 @@ export default function Dashboard({ session, onLogout }) {
         return
       }
 
-      // Check if request already exists
       const { data: existing } = await supabase
         .from('partnerships')
         .select('*')
@@ -225,16 +231,11 @@ export default function Dashboard({ session, onLogout }) {
         .maybeSingle()
 
       if (existing) {
-        if (existing.status === 'pending') {
-          setError('Request already pending. Waiting for partner to accept.')
-        } else {
-          setError('You are already connected')
-        }
+        setError('Request already pending or you are already connected')
         setPairingLoading(false)
         return
       }
 
-      // Create partnership request
       const { error: createError } = await supabase
         .from('partnerships')
         .insert([
@@ -247,10 +248,8 @@ export default function Dashboard({ session, onLogout }) {
 
       if (createError) throw createError
 
-      setError('') // Clear error
       setPartnerUsername('')
       setShowPairingModal(false)
-      // Show success message by setting a temporary success state
       alert(`Partnership request sent to @${partner.username}!`)
     } catch (err) {
       console.error('Pairing error:', err)
@@ -269,8 +268,8 @@ export default function Dashboard({ session, onLogout }) {
         user_id: session.user.id,
         partnership_id: partnership.id,
         title: newTaskTitle.trim(),
-        priority: selectedOre.type,
-        priority_points: selectedOre.points,
+        priority: selectedOre,
+        priority_points: ROCK_CONFIG[selectedOre].points,
         completed: false,
       },
     ])
@@ -285,23 +284,40 @@ export default function Dashboard({ session, onLogout }) {
     }
   }
 
-  async function toggleTask(task) {
+  async function handleTaskComplete(taskId) {
+    const task = [...myTasks, ...partnerTasks].find(t => t.id === taskId)
+    if (!task) return
+
+    // Create particle effect
+    const rockElement = document.querySelector(`[data-task-id="${taskId}"]`)
+    if (rockElement) {
+      const rect = rockElement.getBoundingClientRect()
+      setParticles(prev => [...prev, {
+        id: Date.now(),
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+        points: ROCK_CONFIG[task.priority].points,
+        delay: 0,
+      }])
+    }
+
+    // Scroll to boss to see damage
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
     await supabase.from('tasks')
-      .update({ 
-        completed: !task.completed, 
-        completed_at: !task.completed ? new Date().toISOString() : null 
-      })
-      .eq('id', task.id)
-    fetchTasks(partnership.id)
+      .update({ completed: true, completed_at: new Date().toISOString() })
+      .eq('id', taskId)
+
+    await fetchTasks(partnership.id)
   }
 
-  async function deleteTask(taskId) {
+  async function handleDeleteTask(taskId) {
     await supabase.from('tasks').delete().eq('id', taskId)
-    fetchTasks(partnership.id)
+    await fetchTasks(partnership.id)
   }
 
   async function disconnectPartnership() {
-    const confirmed = window.confirm('Are you sure you want to disconnect from your partner?')
+    const confirmed = window.confirm('Are you sure you want to disconnect?')
     if (!confirmed) return
 
     const { error } = await supabase
@@ -314,13 +330,60 @@ export default function Dashboard({ session, onLogout }) {
       setPartnerUser(null)
       setMyTasks([])
       setPartnerTasks([])
+      setIsDefeated(false)
+      setShowVictory(false)
     }
   }
+
+  async function handleStartNewBattle() {
+    // Delete ALL completed tasks
+    const allTaskIds = [...myTasks, ...partnerTasks].map(t => t.id)
+    
+    if (allTaskIds.length > 0) {
+      await supabase
+        .from('tasks')
+        .delete()
+        .in('id', allTaskIds)
+    }
+
+    // Reset UI state
+    setIsDefeated(false)
+    setShowVictory(false)
+    setMyTasks([])
+    setPartnerTasks([])
+    setBossHealth({ current: 0, max: 0 })
+
+    // Reload fresh data
+    await fetchTasks(partnership.id)
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function handleDefeatAnimationEnd() {
+    setShowVictory(true)
+  }
+
+  const healthPercent = bossHealth.max > 0 
+    ? (bossHealth.current / bossHealth.max) * 100 
+    : 0
+
+  const damageProgress = bossHealth.max > 0 
+    ? ((bossHealth.max - bossHealth.current) / bossHealth.max) * 100 
+    : 0
+
+  const myProgress = myTasks.length > 0 
+    ? (myTasks.filter(t => t.completed).length / myTasks.length) * 100 
+    : 0
+
+  const partnerProgress = partnerTasks.length > 0 
+    ? (partnerTasks.filter(t => t.completed).length / partnerTasks.length) * 100 
+    : 0
 
   if (loading) {
     return (
       <div className="dashboard-loading">
-        <div className="loader">⛏️ Loading mine...</div>
+        <div className="loading-spinner">⛏️ Awakening the Crystal Titan...</div>
       </div>
     )
   }
@@ -328,8 +391,11 @@ export default function Dashboard({ session, onLogout }) {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <div className="logo">⚒️ Accountability Hub</div>
-        <div className="user-info">
+        <div className="header-left">
+          <h1 className="header-title">⚒️ Boss Break</h1>
+          <p className="header-subtitle">Defeat the Crystal Titan</p>
+        </div>
+        <div className="header-right">
           <span className="username">@{user?.username}</span>
           <button onClick={onLogout} className="logout-btn">Logout</button>
         </div>
@@ -337,7 +403,6 @@ export default function Dashboard({ session, onLogout }) {
 
       <main className="dashboard-content">
         {showPendingRequest && pendingPartner ? (
-          // PENDING REQUEST UI
           <div className="pending-request-view">
             <div className="pending-card">
               <h2>Partnership Request</h2>
@@ -353,106 +418,175 @@ export default function Dashboard({ session, onLogout }) {
             </div>
           </div>
         ) : !partnership ? (
-          // NO PARTNERSHIP VIEW
           <div className="no-partnership">
-            <div className="empty-icon">⛏️</div>
+            <div className="empty-icon">💎</div>
             <h2>No Mining Partner Yet</h2>
-            <p>Connect with a friend to start your accountability journey</p>
+            <p>Connect with a friend to summon the Crystal Titan</p>
             <button className="primary-btn" onClick={() => setShowPairingModal(true)}>
               Find Partner
             </button>
           </div>
         ) : (
-          // ACTIVE PARTNERSHIP VIEW
-          <div className="mines-container">
-            {/* My Mine */}
-            <section className="mine-column">
-              <div className="column-header">
-                <h3>My Mine</h3>
-                <button className="add-task-btn" onClick={() => setShowTaskModal(true)}>
-                  + Add Ore
-                </button>
-              </div>
-              <div className="task-list">
-                {myTasks.length === 0 ? (
-                  <div className="empty-state">No ore yet. Add your first task!</div>
-                ) : (
-                  myTasks.map(task => (
-                    <div key={task.id} 
-                         className={`task-card ${task.priority.toLowerCase()} ${task.completed ? 'completed' : ''}`}
-                         onClick={() => toggleTask(task)}>
-                      <div className="task-left">
-                        <span className="ore-icon">
-                          {ORE_TYPES.find(o => o.type === task.priority)?.icon}
-                        </span>
-                        <span className="task-title">{task.title}</span>
-                      </div>
-                      <button className="delete-btn" onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }}>
-                        ×
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
+          <>
+            <div className="boss-and-health">
+              <CrystalTitan 
+                progress={damageProgress} 
+                onDefeatAnimationEnd={handleDefeatAnimationEnd}
+              />
+              <BossHealthBar 
+                current={bossHealth.current} 
+                max={bossHealth.max}
+                healthPercent={healthPercent}
+              />
+            </div>
 
-            {/* Partner's Mine */}
-            <section className="mine-column partner">
-              <div className="column-header">
-                <div>
-                  <h3>@{partnerUser?.username}'s Mine</h3>
-                </div>
-                <button className="disconnect-btn" onClick={disconnectPartnership} title="Disconnect from partner">
-                  🔌
-                </button>
-              </div>
-              <div className="task-list">
-                {partnerTasks.length === 0 ? (
-                  <div className="empty-state">Partner hasn't added any ore yet</div>
-                ) : (
-                  partnerTasks.map(task => (
-                    <div key={task.id} 
-                         className={`task-card ${task.priority.toLowerCase()} ${task.completed ? 'completed' : ''} readonly`}>
-                      <div className="task-left">
-                        <span className="ore-icon">
-                          {ORE_TYPES.find(o => o.type === task.priority)?.icon}
-                        </span>
-                        <span className="task-title">{task.title}</span>
-                      </div>
+            {showVictory && (
+              <section className="victory-screen">
+                <div className="victory-content">
+                  <h2>CRYSTAL TITAN DEFEATED!</h2>
+                  <p>You and your partner defeated the boss together!</p>
+                  <div className="victory-stats">
+                    <div className="stat">
+                      <span className="stat-label">Your Tasks</span>
+                      <span className="stat-value">{myTasks.filter(t => t.completed).length}/{myTasks.length}</span>
                     </div>
-                  ))
-                )}
+                    <div className="stat">
+                      <span className="stat-label">Partner Tasks</span>
+                      <span className="stat-value">{partnerTasks.filter(t => t.completed).length}/{partnerTasks.length}</span>
+                    </div>
+                  </div>
+                  <button className="victory-button" onClick={handleStartNewBattle}>
+                    Ready for Next Battle
+                  </button>
+                </div>
+              </section>
+            )}
+
+            <div className="rocks-layout">
+              <section className="rocks-section">
+                <div className="section-header">
+                  <h2 className="rocks-title">My Tasks</h2>
+                  <button className="add-task-btn" onClick={() => setShowTaskModal(true)}>
+                    + Add Task
+                  </button>
+                </div>
+                <div className="rocks-grid">
+                  {myTasks.length === 0 ? (
+                    <p className="empty-message">No tasks yet. Add your first one!</p>
+                  ) : (
+                    myTasks.map(task => (
+                      <div key={task.id} data-task-id={task.id}>
+                        <TaskRock 
+                          task={task}
+                          onComplete={handleTaskComplete}
+                          onDelete={handleDeleteTask}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <section className="rocks-section partner-section">
+                <div className="section-header">
+                  <h2 className="rocks-title">@{partnerUser?.username} Tasks</h2>
+                  <button className="disconnect-btn" onClick={disconnectPartnership} title="Disconnect">
+                    🔌
+                  </button>
+                </div>
+                <div className="rocks-grid">
+                  {partnerTasks.length === 0 ? (
+                    <p className="empty-message">Partner has no tasks yet</p>
+                  ) : (
+                    partnerTasks.map(task => (
+                      <div key={task.id} data-task-id={task.id}>
+                        <TaskRock 
+                          task={task}
+                          onComplete={() => {}}
+                          onDelete={() => {}}
+                          isReadonly={true}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+            </div>
+
+            <div className="compact-progress">
+              <div className="progress-mini">
+                <span className="progress-label">Your Progress: {Math.round(myProgress)}%</span>
+                <div className="progress-bar-mini">
+                  <div className="progress-fill-mini" style={{ width: `${myProgress}%` }}></div>
+                </div>
               </div>
-            </section>
-          </div>
+              <div className="progress-mini">
+                <span className="progress-label">@{partnerUser?.username}: {Math.round(partnerProgress)}%</span>
+                <div className="progress-bar-mini partner">
+                  <div className="progress-fill-mini partner" style={{ width: `${partnerProgress}%` }}></div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </main>
 
-      {/* Task Modal */}
+      {showPairingModal && (
+        <div className="modal-overlay" onClick={() => setShowPairingModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>Find Your Mining Partner</h3>
+            <p>Enter your friend username to send a partnership request</p>
+            <input 
+              type="text" 
+              placeholder="username" 
+              value={partnerUsername} 
+              onChange={e => setPartnerUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} 
+              autoFocus 
+            />
+            {error && <div className="error-message">{error}</div>}
+            <div className="modal-actions">
+              <button className="confirm-btn" onClick={handlePairWithUsername} disabled={pairingLoading}>
+                {pairingLoading ? 'Sending...' : 'Send Request'}
+              </button>
+              <button className="cancel-btn" onClick={() => {
+                setShowPairingModal(false)
+                setError('')
+                setPartnerUsername('')
+              }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showTaskModal && (
         <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>Add Task Ore</h3>
+            <h3>Add Task</h3>
             <form onSubmit={handleAddTask}>
-              <input type="text" 
-                     placeholder="What needs to be done?" 
-                     value={newTaskTitle} 
-                     onChange={e => setNewTaskTitle(e.target.value)} 
-                     autoFocus 
-                     required />
+              <input 
+                type="text" 
+                placeholder="What needs to be done?" 
+                value={newTaskTitle} 
+                onChange={e => setNewTaskTitle(e.target.value)} 
+                autoFocus 
+                required 
+              />
               <div className="ore-selector">
-                {ORE_TYPES.map(ore => (
-                  <div key={ore.type} 
-                       className={`ore-option ${selectedOre.type === ore.type ? 'selected' : ''}`}
-                       onClick={() => setSelectedOre(ore)}>
-                    <span className="ore-emoji">{ore.icon}</span>
-                    <span className="ore-name">{ore.type}</span>
-                    <span className="ore-points">{ore.points}pt</span>
+                {Object.keys(ROCK_CONFIG).map(ore => (
+                  <div 
+                    key={ore}
+                    className={`ore-option ${selectedOre === ore ? 'selected' : ''}`}
+                    onClick={() => setSelectedOre(ore)}
+                  >
+                    <span className="ore-name">{ore}</span>
+                    <span className="ore-points">{ROCK_CONFIG[ore].points}pt</span>
                   </div>
                 ))}
               </div>
               <div className="modal-actions">
-                <button type="submit" className="confirm-btn">Drop in Mine</button>
+                <button type="submit" className="confirm-btn">Add Task</button>
                 <button type="button" className="cancel-btn" onClick={() => setShowTaskModal(false)}>Cancel</button>
               </div>
             </form>
@@ -460,29 +594,7 @@ export default function Dashboard({ session, onLogout }) {
         </div>
       )}
 
-      {/* Pairing Modal */}
-      {showPairingModal && (
-        <div className="modal-overlay" onClick={() => setShowPairingModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>Find Your Mining Partner</h3>
-            <p>Enter your friend's username to send a partnership request</p>
-            <input type="text" 
-                   placeholder="username" 
-                   value={partnerUsername} 
-                   onChange={e => setPartnerUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} 
-                   autoFocus />
-            {error && <div className="error-message">{error}</div>}
-            <div className="modal-actions">
-              <button className="confirm-btn" onClick={handlePairWithUsername} disabled={pairingLoading}>
-                {pairingLoading ? 'Sending...' : 'Send Request'}
-              </button>
-              <button className="cancel-btn" onClick={() => { setShowPairingModal(false); setError(''); setPartnerUsername('') }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <XPParticle particles={particles} />
     </div>
   )
 }

@@ -1,0 +1,277 @@
+.crystal-titan-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem 1rem;
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border-radius: 20px;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.crystal-titan {
+    position: relative;
+    width: 100%;
+    max-width: 250px;
+    aspect-ratio: 1;
+    perspective: 1000px;
+    animation: titanPulse 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 40px rgba(139, 92, 246, 0.6));
+}
+
+@keyframes titanPulse {
+
+    0%,
+    100% {
+        transform: scale(1) rotateZ(-1deg);
+    }
+
+    50% {
+        transform: scale(1.05) rotateZ(1deg);
+    }
+}
+
+.titan-body {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.boss-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 30px rgba(139, 92, 246, 0.4));
+}
+
+.crystal-glow {
+    position: absolute;
+    inset: -20%;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: glowPulse 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes glowPulse {
+
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+.crystal-shine {
+    position: absolute;
+    top: 10%;
+    left: 15%;
+    width: 30%;
+    height: 30%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent);
+    border-radius: 50%;
+    animation: shine 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes shine {
+
+    0%,
+    100% {
+        opacity: 0.2;
+        transform: translate(0, 0);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: translate(5px, 5px);
+    }
+}
+
+/* Cracks */
+.cracks-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.crack {
+    position: absolute;
+    background: linear-gradient(to right, transparent, #ff1744, transparent);
+    box-shadow: 0 0 10px rgba(255, 23, 68, 0.5);
+}
+
+.crack-1 {
+    width: 3px;
+    height: 60%;
+    top: 20%;
+    left: 30%;
+    animation: crackGrow 0.6s ease-out forwards;
+}
+
+.crack-2 {
+    width: 3px;
+    height: 50%;
+    top: 25%;
+    right: 25%;
+    animation: crackGrow 0.6s ease-out 0.1s forwards;
+}
+
+.crack-3 {
+    width: 70%;
+    height: 3px;
+    bottom: 30%;
+    left: 15%;
+    animation: crackGrow 0.6s ease-out 0.2s forwards;
+}
+
+.crack-4 {
+    width: 60%;
+    height: 3px;
+    top: 40%;
+    left: 20%;
+    animation: crackGrow 0.6s ease-out 0.3s forwards;
+}
+
+.crack-5 {
+    width: 3px;
+    height: 70%;
+    top: 15%;
+    right: 35%;
+    animation: crackGrow 0.6s ease-out 0.4s forwards;
+}
+
+@keyframes crackGrow {
+    0% {
+        transform: scaleY(0);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scaleY(1);
+        opacity: 1;
+    }
+}
+
+.crystal-titan.crack-1 {
+    filter: drop-shadow(0 0 30px rgba(255, 23, 68, 0.3));
+}
+
+.crystal-titan.crack-2 {
+    filter: drop-shadow(0 0 25px rgba(255, 23, 68, 0.4));
+}
+
+.crystal-titan.crack-3 {
+    filter: drop-shadow(0 0 20px rgba(255, 23, 68, 0.5));
+}
+
+.crystal-titan.crack-4 {
+    filter: drop-shadow(0 0 15px rgba(255, 23, 68, 0.6));
+}
+
+.crystal-titan.crack-5 {
+    filter: drop-shadow(0 0 10px rgba(255, 23, 68, 0.7));
+}
+
+/* Defeat Animation */
+.crystal-titan.defeated {
+    animation: titanShatter 0.8s ease-out forwards;
+}
+
+@keyframes titanShatter {
+    0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0.8) rotate(15deg);
+        opacity: 0;
+    }
+}
+
+.victory-explosion {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.crystal-shard {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #ff0080, #8b5cf6);
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    animation: shardFly 1.2s ease-out forwards;
+}
+
+@keyframes shardFly {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform:
+            translate(calc(-50% + cos(var(--angle)) * 200px),
+                calc(-50% + sin(var(--angle)) * 200px)) scale(1) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+.victory-text-container {
+    position: absolute;
+    bottom: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    animation: victoryAppear 0.6s ease-out forwards;
+}
+
+@keyframes victoryAppear {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.victory-text {
+    font-size: 1.8rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #ff0080, #fbbf24, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+}
+
+.victory-subtext {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin: 0.5rem 0 0 0;
+}

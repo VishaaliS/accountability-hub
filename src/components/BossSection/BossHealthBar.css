@@ -1,0 +1,85 @@
+.boss-health-container {
+    width: 100%;
+    max-width: 500px;
+}
+
+.health-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    padding: 0 1rem;
+}
+
+.health-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #cbd5e1;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.health-stats {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fbbf24;
+}
+
+.health-bar-wrapper {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    padding: 4px;
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    overflow: hidden;
+}
+
+.health-bar-background {
+    width: 100%;
+    height: 30px;
+    background: #0f172a;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+}
+
+.health-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg,
+            #10b981 0%,
+            #fbbf24 50%,
+            #ef4444 100%);
+    border-radius: 16px;
+    position: relative;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+.health-bar-shimmer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.health-percentage {
+    text-align: center;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    font-weight: 600;
+}

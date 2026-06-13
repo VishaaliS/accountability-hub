@@ -1,0 +1,310 @@
+.task-rock-card {
+    background: rgba(30, 41, 59, 0.6);
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    width: 100%;
+}
+
+.task-rock-card:hover {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(139, 92, 246, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.task-content-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+}
+
+/* Rock Icon - FIXED SIZE */
+.rock-icon-container {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+}
+
+.rock-icon-image,
+.rock-icon-emoji {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: all 0.3s ease;
+}
+
+.rock-icon-emoji {
+    font-size: 2.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Task Details - FLEXIBLE HORIZONTAL */
+.task-details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.task-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 0;
+    /* Single line with ellipsis */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
+.task-type {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    background: rgba(139, 92, 246, 0.2);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.task-points {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fbbf24;
+    white-space: nowrap;
+}
+
+/* Delete Button */
+.task-delete-btn {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.task-delete-btn:hover {
+    background: #ef4444;
+    border-color: #dc2626;
+    transform: scale(1.1);
+}
+
+/* Completion Checkmark */
+.completion-checkmark {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background: #10b981;
+    border: 2px solid #059669;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: white;
+    font-weight: 900;
+    animation: checkmarkPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 10;
+}
+
+@keyframes checkmarkPop {
+    0% {
+        transform: scale(0) rotate(-45deg);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+/* COMPLETED STATE */
+.task-rock-card.completed-task {
+    opacity: 0.6;
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.task-rock-card.completed-task .rock-icon-image,
+.task-rock-card.completed-task .rock-icon-emoji {
+    filter: grayscale(1) brightness(0.7);
+}
+
+.task-rock-card.completed-task .task-title {
+    text-decoration: line-through;
+    color: #94a3b8;
+}
+
+.task-rock-card.completed-task:hover {
+    transform: none;
+    cursor: default;
+}
+
+/* BREAKING ANIMATION */
+.task-rock-card.breaking-task {
+    animation: taskShake 0.4s ease-out, taskFlash 0.4s ease-out;
+}
+
+@keyframes taskShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-4px) rotate(-1deg);
+    }
+
+    50% {
+        transform: translateX(4px) rotate(1deg);
+    }
+
+    75% {
+        transform: translateX(-2px) rotate(-0.5deg);
+    }
+}
+
+@keyframes taskFlash {
+
+    0%,
+    100% {
+        background: rgba(30, 41, 59, 0.6);
+    }
+
+    50% {
+        background: rgba(139, 92, 246, 0.4);
+    }
+}
+
+/* Break Effect Particles */
+.break-effect {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.shard {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: radial-gradient(circle, #fbbf24, #f59e0b);
+    border-radius: 50%;
+    left: 50%;
+    top: 50%;
+    animation: shardFly 0.6s ease-out forwards;
+}
+
+@keyframes shardFly {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform:
+            translate(calc(-50% + cos(var(--angle)) * 50px),
+                calc(-50% + sin(var(--angle)) * 50px)) scale(0);
+        opacity: 0;
+    }
+}
+
+/* Hover Prompt */
+.completion-prompt {
+    position: absolute;
+    bottom: -26px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(16, 185, 129, 0.95);
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+    animation: promptSlide 0.3s ease-out;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+@keyframes promptSlide {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .task-rock-card {
+        padding: 0.7rem 0.8rem;
+    }
+
+    .task-content-wrapper {
+        gap: 0.8rem;
+    }
+
+    .rock-icon-container {
+        width: 40px;
+        height: 40px;
+    }
+
+    .rock-icon-emoji {
+        font-size: 2rem;
+    }
+
+    .task-title {
+        font-size: 0.9rem;
+    }
+
+    .task-type {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    .task-points {
+        font-size: 0.75rem;
+    }
+}
+
+/* Extra small screens - Stack vertically only if needed */
+@media (max-width: 400px) {
+    .task-details {
+        flex-wrap: wrap;
+    }
+
+    .task-title {
+        flex-basis: 100%;
+        margin-bottom: 0.3rem;
+    }
+}
